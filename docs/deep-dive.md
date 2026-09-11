@@ -463,16 +463,16 @@ scan, and version management trivial.
 
 | You want to understand… | Read this file |
 | --- | --- |
-| Data shapes (Failure, Incident, Task, RunState) | [`src/triage/schema.py`](https://github.com/karthikb35/agentic-log-triage/blob/main/src/triage/schema.py) |
-| Turning logs into failures | [`src/triage/ingest.py`](https://github.com/karthikb35/agentic-log-triage/blob/main/src/triage/ingest.py) |
-| The four agents | [`src/triage/agents/`](https://github.com/karthikb35/agentic-log-triage/tree/main/src/triage/agents) |
-| Wiring agents into a graph | [`src/triage/graph.py`](https://github.com/karthikb35/agentic-log-triage/blob/main/src/triage/graph.py) |
-| The HTTP API | [`src/triage/api.py`](https://github.com/karthikb35/agentic-log-triage/blob/main/src/triage/api.py) |
-| The queue (Redis Streams) | [`src/triage/queue.py`](https://github.com/karthikb35/agentic-log-triage/blob/main/src/triage/queue.py) |
-| The state/blob store | [`src/triage/store.py`](https://github.com/karthikb35/agentic-log-triage/blob/main/src/triage/store.py) |
-| The worker loop | [`src/triage/worker.py`](https://github.com/karthikb35/agentic-log-triage/blob/main/src/triage/worker.py) |
-| Idempotent ticket opening | [`src/triage/ticketing.py`](https://github.com/karthikb35/agentic-log-triage/blob/main/src/triage/ticketing.py) |
-| Redis client + Sentinel | [`src/triage/runtime.py`](https://github.com/karthikb35/agentic-log-triage/blob/main/src/triage/runtime.py) |
+| Data shapes (Failure, Incident, Task, RunState) | [`src/triage/schema.py`](https://github.com/karthikb35/agent-log-triage/blob/main/src/triage/schema.py) |
+| Turning logs into failures | [`src/triage/ingest.py`](https://github.com/karthikb35/agent-log-triage/blob/main/src/triage/ingest.py) |
+| The four agents | [`src/triage/agents/`](https://github.com/karthikb35/agent-log-triage/tree/main/src/triage/agents) |
+| Wiring agents into a graph | [`src/triage/graph.py`](https://github.com/karthikb35/agent-log-triage/blob/main/src/triage/graph.py) |
+| The HTTP API | [`src/triage/api.py`](https://github.com/karthikb35/agent-log-triage/blob/main/src/triage/api.py) |
+| The queue (Redis Streams) | [`src/triage/queue.py`](https://github.com/karthikb35/agent-log-triage/blob/main/src/triage/queue.py) |
+| The state/blob store | [`src/triage/store.py`](https://github.com/karthikb35/agent-log-triage/blob/main/src/triage/store.py) |
+| The worker loop | [`src/triage/worker.py`](https://github.com/karthikb35/agent-log-triage/blob/main/src/triage/worker.py) |
+| Idempotent ticket opening | [`src/triage/ticketing.py`](https://github.com/karthikb35/agent-log-triage/blob/main/src/triage/ticketing.py) |
+| Redis client + Sentinel | [`src/triage/runtime.py`](https://github.com/karthikb35/agent-log-triage/blob/main/src/triage/runtime.py) |
 
 ---
 

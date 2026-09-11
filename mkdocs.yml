@@ -1,7 +1,7 @@
 site_name: Agentic Log Triage
 site_description: Deterministic multi-agent (LangGraph + MCP) triage over high-volume structured pytest step-logs.
-site_url: https://karthikb35.github.io/agentic-log-triage/
-repo_url: https://github.com/karthikb35/agentic-log-triage
+site_url: https://karthikb35.github.io/agent-log-triage/
+repo_url: https://github.com/karthikb35/agent-log-triage
 edit_uri: edit/main/docs/
 
 theme:
@@ -60,4 +60,4 @@ markdown_extensions:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/karthikb35/agentic-log-triage
+      link: https://github.com/karthikb35/agent-log-triage

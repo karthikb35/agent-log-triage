@@ -46,9 +46,9 @@ shard index for deterministic partitioning with no queue.
 
 ## How this repo maps triage onto Jobs
 
-- **[`deploy/job.yaml`](https://github.com/karthikb35/agentic-log-triage/blob/main/deploy/job.yaml)** —
+- **[`deploy/job.yaml`](https://github.com/karthikb35/agent-log-triage/blob/main/deploy/job.yaml)** —
   a one-shot Job that runs `triage run` over the logs and exits.
-- **[`deploy/cronjob.yaml`](https://github.com/karthikb35/agentic-log-triage/blob/main/deploy/cronjob.yaml)** —
+- **[`deploy/cronjob.yaml`](https://github.com/karthikb35/agent-log-triage/blob/main/deploy/cronjob.yaml)** —
   a `*/15 * * * *` sweep with `concurrencyPolicy: Forbid`.
 
 Both set the production-grade defaults: `restartPolicy: Never`, non-root +

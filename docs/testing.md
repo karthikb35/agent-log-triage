@@ -8,9 +8,9 @@ The triage engine is only as good as the logs it eats. Those logs come from a
 
 Two **mock** services standing in for the real TicketHub microservices:
 
-- [`services/orders.py`](https://github.com/karthikb35/agentic-log-triage/blob/main/services/orders.py) —
+- [`services/orders.py`](https://github.com/karthikb35/agent-log-triage/blob/main/services/orders.py) —
   a 3-step saga: *create order → reserve inventory → confirm*.
-- [`services/payments.py`](https://github.com/karthikb35/agentic-log-triage/blob/main/services/payments.py) —
+- [`services/payments.py`](https://github.com/karthikb35/agent-log-triage/blob/main/services/payments.py) —
   *authorize → capture*.
 
 Each test injects a **transient fault** on one step so it fails on attempt 1 and
@@ -84,7 +84,7 @@ triage run --reports reports --format md --fail-under 0.5
 
 ## Rich sample data
 
-[`examples/sample_steplogs/`](https://github.com/karthikb35/agentic-log-triage/tree/main/examples/sample_steplogs)
+[`examples/sample_steplogs/`](https://github.com/karthikb35/agent-log-triage/tree/main/examples/sample_steplogs)
 contains canned reports covering the **full taxonomy** — including a permanent
 `dependency_unavailable` outage and an `unknown` failure that routes to a human — so
 you can run `triage run --reports examples/sample_steplogs` with no test run at all.

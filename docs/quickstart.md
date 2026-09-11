@@ -8,7 +8,7 @@
 ## 1. Install
 
 ```bash
-git clone https://github.com/karthikb35/agentic-log-triage
+git clone https://github.com/karthikb35/agent-log-triage
 cd agentic-log-triage
 python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -e . pytest pytest-resumable-stepmetrics

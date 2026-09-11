@@ -9,7 +9,7 @@ A runnable reference implementation of the pattern:
 > including deterministic multi-agent workflows over high-volume structured logs;
 > reduced operational triage effort by 50%.*
 
-📖 **Docs:** https://karthikb35.github.io/agentic-log-triage/ · rendered from
+📖 **Docs:** https://karthikb35.github.io/agent-log-triage/ · rendered from
 [`docs/`](docs/) with MkDocs Material and published to GitHub Pages.
 
 ## What it does

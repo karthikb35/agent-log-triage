@@ -89,11 +89,11 @@ flowchart LR
 
 | Component | Role | Manifest |
 | --- | --- | --- |
-| `triage-api` | Validate, enqueue, serve polls. Never runs the pipeline. | [`deploy/api-deployment.yaml`](https://github.com/karthikb35/agentic-log-triage/blob/main/deploy/api-deployment.yaml) |
-| `triage-redis` | Stream queue + run-state + report blobs, all TTL'd. | [`deploy/redis.yaml`](https://github.com/karthikb35/agentic-log-triage/blob/main/deploy/redis.yaml) |
-| `triage-worker` | Consume tasks, run the LangGraph pipeline, persist result. | [`deploy/worker-deployment.yaml`](https://github.com/karthikb35/agentic-log-triage/blob/main/deploy/worker-deployment.yaml) |
-| KEDA `ScaledObject` | Scale workers on stream backlog; keep a warm floor. | [`deploy/keda-scaledobject.yaml`](https://github.com/karthikb35/agentic-log-triage/blob/main/deploy/keda-scaledobject.yaml) |
-| `NetworkPolicy` | API reachable from CI only; Redis from API/worker only. | [`deploy/networkpolicy.yaml`](https://github.com/karthikb35/agentic-log-triage/blob/main/deploy/networkpolicy.yaml) |
+| `triage-api` | Validate, enqueue, serve polls. Never runs the pipeline. | [`deploy/api-deployment.yaml`](https://github.com/karthikb35/agent-log-triage/blob/main/deploy/api-deployment.yaml) |
+| `triage-redis` | Stream queue + run-state + report blobs, all TTL'd. | [`deploy/redis.yaml`](https://github.com/karthikb35/agent-log-triage/blob/main/deploy/redis.yaml) |
+| `triage-worker` | Consume tasks, run the LangGraph pipeline, persist result. | [`deploy/worker-deployment.yaml`](https://github.com/karthikb35/agent-log-triage/blob/main/deploy/worker-deployment.yaml) |
+| KEDA `ScaledObject` | Scale workers on stream backlog; keep a warm floor. | [`deploy/keda-scaledobject.yaml`](https://github.com/karthikb35/agent-log-triage/blob/main/deploy/keda-scaledobject.yaml) |
+| `NetworkPolicy` | API reachable from CI only; Redis from API/worker only. | [`deploy/networkpolicy.yaml`](https://github.com/karthikb35/agent-log-triage/blob/main/deploy/networkpolicy.yaml) |
 
 ---
 
@@ -200,7 +200,7 @@ The correctness core is **at-least-once with ack-last**:
 | KEDA trigger | `pendingEntriesCount: 30` | scale up when per-replica backlog builds |
 
 !!! warning "Single Redis is the *baseline*, not the only option"
-    The default [`deploy/redis.yaml`](https://github.com/karthikb35/agentic-log-triage/blob/main/deploy/redis.yaml)
+    The default [`deploy/redis.yaml`](https://github.com/karthikb35/agent-log-triage/blob/main/deploy/redis.yaml)
     is a single instance: a restart drops in-flight runs and clients resubmit.
     That is fine for the transient state we keep (≤5 min). When losing in-flight
     runs on a restart is *not* acceptable, switch to the **Redis Sentinel** HA
@@ -305,7 +305,7 @@ sequenceDiagram
 
 The application side is already **Sentinel-aware**: set `TRIAGE_REDIS_SENTINELS`
 and the client
-([runtime.py](https://github.com/karthikb35/agentic-log-triage/blob/main/src/triage/runtime.py))
+([runtime.py](https://github.com/karthikb35/agent-log-triage/blob/main/src/triage/runtime.py))
 asks the sentinels for the current master on every connection, so a promotion is
 transparent — the queue, run-state, and report blobs (AOF-persisted on the nodes)
 survive the failover.
@@ -323,9 +323,9 @@ and injects the env above:
 kubectl apply -k deploy/ha
 ```
 
-Manifests: [`deploy/redis-ha.yaml`](https://github.com/karthikb35/agentic-log-triage/blob/main/deploy/redis-ha.yaml)
+Manifests: [`deploy/redis-ha.yaml`](https://github.com/karthikb35/agent-log-triage/blob/main/deploy/redis-ha.yaml)
 (nodes + sentinels + network policies) and
-[`deploy/ha/kustomization.yaml`](https://github.com/karthikb35/agentic-log-triage/blob/main/deploy/ha/kustomization.yaml)
+[`deploy/ha/kustomization.yaml`](https://github.com/karthikb35/agent-log-triage/blob/main/deploy/ha/kustomization.yaml)
 (the overlay). For very large or regulated environments, a managed Redis or a
 Redis operator remains the lower-operational-risk choice; this topology is a
 correct, self-contained reference.
