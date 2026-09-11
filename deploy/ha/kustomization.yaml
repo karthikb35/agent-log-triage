@@ -1,0 +1,64 @@
+# HA overlay: takes the baseline stack and swaps single-instance Redis for the
+# Sentinel topology in ../redis-ha.yaml, then points the API and workers at the
+# sentinels so their clients follow failover.
+#
+#     kubectl apply -k deploy/ha
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../            # the baseline kustomization (deploy/kustomization.yaml)
+  - ../redis-ha.yaml
+
+patches:
+  # Remove the single-instance Redis; the Sentinel topology replaces it.
+  - target:
+      kind: Deployment
+      name: triage-redis
+    patch: |
+      $patch: delete
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: triage-redis
+  - target:
+      kind: Service
+      name: triage-redis
+    patch: |
+      $patch: delete
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: triage-redis
+
+  # Point the API at the sentinels (Sentinel-aware client follows failover).
+  - target:
+      kind: Deployment
+      name: triage-api
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: TRIAGE_REDIS_SENTINELS
+          value: "triage-sentinel:26379"
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: TRIAGE_REDIS_MASTER_NAME
+          value: "triage"
+
+  # Same for the worker pool.
+  - target:
+      kind: Deployment
+      name: triage-worker
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: TRIAGE_REDIS_SENTINELS
+          value: "triage-sentinel:26379"
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: TRIAGE_REDIS_MASTER_NAME
+          value: "triage"

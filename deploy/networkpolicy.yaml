@@ -1,0 +1,49 @@
+# Default-deny east-west traffic, then open only the paths the flow needs.
+# The API is reachable from CI clients in the `ci` namespace; Redis is reachable
+# only from the API and worker pods. Nothing here is exposed outside the cluster.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: triage-api-ingress
+  labels:
+    app.kubernetes.io/name: agentic-log-triage
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: agentic-log-triage
+      app.kubernetes.io/component: api
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ci
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: triage-redis-ingress
+  labels:
+    app.kubernetes.io/name: agentic-log-triage
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: agentic-log-triage
+      app.kubernetes.io/component: redis
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agentic-log-triage
+              app.kubernetes.io/component: api
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agentic-log-triage
+              app.kubernetes.io/component: worker
+      ports:
+        - protocol: TCP
+          port: 6379

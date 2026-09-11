@@ -1,0 +1,79 @@
+# The async triage API: accepts pytest submissions, enqueues work, serves polls.
+#
+# Stateless and horizontally scalable; it never runs the pipeline itself. Kept at
+# a small fixed replica count -- it is I/O-bound glue in front of Redis. Exposed
+# only inside the cluster (ClusterIP); see networkpolicy.yaml for the ingress
+# allow-list.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: triage-api
+  labels:
+    app.kubernetes.io/name: agentic-log-triage
+    app.kubernetes.io/component: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentic-log-triage
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agentic-log-triage
+        app.kubernetes.io/component: api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: registry.internal/tickethub/agentic-log-triage:0.1.0
+          args: ["serve", "--host", "0.0.0.0", "--port", "8080"]
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: TRIAGE_REDIS_URL
+              value: "redis://triage-redis:6379/0"
+            - name: TRIAGE_MAX_PENDING
+              value: "5000"
+            - name: TRIAGE_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: triage-api
+                  key: token
+                  optional: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "500m", memory: "256Mi" }
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            initialDelaySeconds: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: triage-api
+  labels:
+    app.kubernetes.io/name: agentic-log-triage
+    app.kubernetes.io/component: api
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: agentic-log-triage
+    app.kubernetes.io/component: api
+  ports:
+    - port: 80
+      targetPort: http
+      name: http

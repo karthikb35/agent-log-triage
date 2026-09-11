@@ -1,0 +1,63 @@
+site_name: Agentic Log Triage
+site_description: Deterministic multi-agent (LangGraph + MCP) triage over high-volume structured pytest step-logs.
+site_url: https://karthikb35.github.io/agentic-log-triage/
+repo_url: https://github.com/karthikb35/agentic-log-triage
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - toc.follow
+
+nav:
+  - Home: index.md
+  - Philosophy: philosophy.md
+  - Architecture: architecture.md
+  - The Agents: agents.md
+  - MCP Tools: mcp.md
+  - Kubernetes Jobs: kubernetes-jobs.md
+  - Real-Time Triage: realtime-triage.md
+  - Deep Dive: deep-dive.md
+  - Testing & Step-Logs: testing.md
+  - Quickstart: quickstart.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - tables
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/karthikb35/agentic-log-triage

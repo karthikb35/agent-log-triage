@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentic-log-triage"
+version = "0.1.0"
+description = "Deterministic multi-agent (LangGraph + MCP) triage over high-volume structured pytest step-logs."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "TicketHub Platform" }]
+keywords = ["langgraph", "mcp", "agents", "pytest", "triage", "kubernetes", "jobs"]
+
+dependencies = [
+    "langgraph>=0.2,<0.4",
+]
+
+[project.optional-dependencies]
+# Optional real-LLM path. The platform runs fully without this.
+llm = ["langchain-core>=0.2", "langchain-openai>=0.1"]
+# Optional Model Context Protocol server that exposes the triage tools.
+mcp = ["mcp>=1.0"]
+# Async API + worker path: FastAPI ingress, Redis Streams queue, KEDA-scaled workers.
+serve = [
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "redis>=5.0",
+    "pydantic>=2.0",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-resumable-stepmetrics>=0.1.5",
+    "fakeredis>=2.20",
+    "httpx>=0.27",
+]
+
+[project.scripts]
+triage = "triage.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]

@@ -1,0 +1,303 @@
+# Redis HA via Sentinel: 3 data nodes (AOF-persisted) + 3 sentinels.
+#
+# This is the opt-in upgrade from the single `triage-redis` in redis.yaml. It
+# survives a node/master failure: sentinels elect a new master and the app's
+# Sentinel-aware client (TRIAGE_REDIS_SENTINELS) re-resolves to it, so in-flight
+# runs are not lost. Names differ from the baseline (`triage-redis-node`,
+# `triage-sentinel`) so both files can coexist in a cluster during migration.
+#
+# Wire it in with the overlay in deploy/ha/ (which deletes the single instance
+# and points the API/worker at the sentinels). For production at scale, a managed
+# Redis or the Bitnami/again operator chart is still the lower-risk choice; this
+# is a correct, self-contained reference topology.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: triage-redis-ha-scripts
+  labels:
+    app.kubernetes.io/name: agentic-log-triage
+    app.kubernetes.io/component: redis-ha
+data:
+  start-redis.sh: |
+    #!/bin/sh
+    set -eu
+    NODE_SVC="triage-redis-node"
+    FQDN="${HOSTNAME}.${NODE_SVC}.${NAMESPACE}.svc.cluster.local"
+    # Prefer the master Sentinel already knows about; fall back to bootstrap
+    # (ordinal 0 is the seed master, others replicate it) on a cold cluster.
+    MASTER_HOST="$(redis-cli -h triage-sentinel -p 26379 --timeout 1 \
+      sentinel get-master-addr-by-name triage 2>/dev/null | sed -n '1p' || true)"
+    set -- redis-server /conf/redis.conf --replica-announce-ip "$FQDN"
+    if [ -n "${MASTER_HOST}" ]; then
+      set -- "$@" --replicaof "${MASTER_HOST}" 6379
+    else
+      ORD="${HOSTNAME##*-}"
+      if [ "${ORD}" != "0" ]; then
+        set -- "$@" --replicaof "${NODE_SVC}-0.${NODE_SVC}.${NAMESPACE}.svc.cluster.local" 6379
+      fi
+    fi
+    exec "$@"
+  redis.conf: |
+    port 6379
+    appendonly yes
+    appendfsync everysec
+    dir /data
+    maxmemory 1gb
+    maxmemory-policy noeviction
+  start-sentinel.sh: |
+    #!/bin/sh
+    set -eu
+    NODE_SVC="triage-redis-node"
+    MASTER="${NODE_SVC}-0.${NODE_SVC}.${NAMESPACE}.svc.cluster.local"
+    CONF=/data/sentinel.conf
+    cat > "$CONF" <<EOF
+    port 26379
+    dir /data
+    sentinel resolve-hostnames yes
+    sentinel announce-hostnames yes
+    sentinel monitor triage ${MASTER} 6379 2
+    sentinel down-after-milliseconds triage 5000
+    sentinel failover-timeout triage 10000
+    sentinel parallel-syncs triage 1
+    EOF
+    exec redis-server "$CONF" --sentinel
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: triage-redis-node
+  labels:
+    app.kubernetes.io/name: agentic-log-triage
+    app.kubernetes.io/component: redis-ha
+spec:
+  clusterIP: None            # headless: stable per-pod DNS for replication
+  selector:
+    app.kubernetes.io/name: agentic-log-triage
+    app.kubernetes.io/component: redis-ha
+  ports:
+    - port: 6379
+      name: redis
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: triage-sentinel
+  labels:
+    app.kubernetes.io/name: agentic-log-triage
+    app.kubernetes.io/component: sentinel
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: agentic-log-triage
+    app.kubernetes.io/component: sentinel
+  ports:
+    - port: 26379
+      name: sentinel
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: triage-redis-node
+  labels:
+    app.kubernetes.io/name: agentic-log-triage
+    app.kubernetes.io/component: redis-ha
+spec:
+  serviceName: triage-redis-node
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentic-log-triage
+      app.kubernetes.io/component: redis-ha
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agentic-log-triage
+        app.kubernetes.io/component: redis-ha
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          command: ["/bin/sh", "/conf/start-redis.sh"]
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - containerPort: 6379
+              name: redis
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits:   { cpu: "500m", memory: "1Gi" }
+          livenessProbe:
+            tcpSocket: { port: redis }
+            initialDelaySeconds: 10
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: scripts
+              mountPath: /conf
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: triage-redis-ha-scripts
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: triage-sentinel
+  labels:
+    app.kubernetes.io/name: agentic-log-triage
+    app.kubernetes.io/component: sentinel
+spec:
+  serviceName: triage-sentinel
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentic-log-triage
+      app.kubernetes.io/component: sentinel
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agentic-log-triage
+        app.kubernetes.io/component: sentinel
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: sentinel
+          image: redis:7-alpine
+          command: ["/bin/sh", "/conf/start-sentinel.sh"]
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - containerPort: 26379
+              name: sentinel
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits:   { cpu: "200m", memory: "128Mi" }
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "-p", "26379", "ping"]
+            initialDelaySeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: scripts
+              mountPath: /conf
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: triage-redis-ha-scripts
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 256Mi
+---
+# Redis data nodes: reachable on 6379 from the API, workers, sentinels, and each
+# other (replication).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: triage-redis-ha-ingress
+  labels:
+    app.kubernetes.io/name: agentic-log-triage
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: agentic-log-triage
+      app.kubernetes.io/component: redis-ha
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agentic-log-triage
+              app.kubernetes.io/component: api
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agentic-log-triage
+              app.kubernetes.io/component: worker
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agentic-log-triage
+              app.kubernetes.io/component: sentinel
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agentic-log-triage
+              app.kubernetes.io/component: redis-ha
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+# Sentinels: reachable on 26379 from the API, workers, and each other.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: triage-sentinel-ingress
+  labels:
+    app.kubernetes.io/name: agentic-log-triage
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: agentic-log-triage
+      app.kubernetes.io/component: sentinel
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agentic-log-triage
+              app.kubernetes.io/component: api
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agentic-log-triage
+              app.kubernetes.io/component: worker
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agentic-log-triage
+              app.kubernetes.io/component: sentinel
+      ports:
+        - protocol: TCP
+          port: 26379

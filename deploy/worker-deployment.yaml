@@ -1,0 +1,56 @@
+# The triage worker pool: consumes tasks from the Redis Stream and runs the
+# deterministic LangGraph pipeline.
+#
+# A warm floor of replicas (see the KEDA ScaledObject's minReplicaCount) is
+# mandatory -- cold starts are unacceptable, so this pool never scales to zero.
+# KEDA adds replicas on queue backlog and removes them back down to the floor.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: triage-worker
+  labels:
+    app.kubernetes.io/name: agentic-log-triage
+    app.kubernetes.io/component: worker
+spec:
+  # Replica count is owned by the KEDA ScaledObject; this is just the seed.
+  replicas: 4
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentic-log-triage
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agentic-log-triage
+        app.kubernetes.io/component: worker
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          image: registry.internal/tickethub/agentic-log-triage:0.1.0
+          args: ["worker"]
+          env:
+            - name: TRIAGE_REDIS_URL
+              value: "redis://triage-redis:6379/0"
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            # Ticket opening is off by default; enable + go live deliberately.
+            - name: TRIAGE_OPEN_TICKETS
+              value: "0"
+            - name: TRIAGE_TICKETS_DRY_RUN
+              value: "1"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: { cpu: "200m", memory: "192Mi" }
+            limits:   { cpu: "1000m", memory: "384Mi" }

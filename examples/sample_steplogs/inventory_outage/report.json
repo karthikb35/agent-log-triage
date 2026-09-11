@@ -1,0 +1,21 @@
+{
+  "run": {
+    "test_nodeid": "tests/test_orders_flow.py::test_orders_flow[ord-refused-0]",
+    "status": "failed",
+    "started_at": "2026-09-09T09:00:03+00:00",
+    "ended_at": "2026-09-09T09:00:05+00:00",
+    "duration_seconds": 2.0,
+    "retry_count": 1,
+    "info": {}
+  },
+  "steps": [
+    {"name": "create order", "attempt": 1, "resumed": false, "status": "passed", "duration_seconds": 0.01, "error": null},
+    {"name": "reserve inventory", "attempt": 1, "resumed": false, "status": "failed", "duration_seconds": 0.5, "error": "connection refused to inventory.tickethub.svc:8080"},
+    {"name": "create order", "attempt": 2, "resumed": true, "status": "skipped_on_retry", "duration_seconds": 0.0, "error": null},
+    {"name": "reserve inventory", "attempt": 2, "resumed": false, "status": "failed", "duration_seconds": 0.5, "error": "connection refused to inventory.tickethub.svc:8080"}
+  ],
+  "service_calls": [
+    {"service": "orders", "endpoint": "/api/orders/reserve", "status": "error", "duration_ms": 500.0, "attempt": 1},
+    {"service": "orders", "endpoint": "/api/orders/reserve", "status": "error", "duration_ms": 500.0, "attempt": 2}
+  ]
+}

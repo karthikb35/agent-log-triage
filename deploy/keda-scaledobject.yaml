@@ -1,0 +1,28 @@
+# KEDA scales the worker pool on Redis Stream backlog.
+#
+# Trigger: pending (delivered-but-unacked + undelivered) entries in the
+# `triage-workers` consumer group on stream `triage:tasks`. minReplicaCount keeps
+# a warm floor so there is no cold start on the first task after idle; KEDA adds
+# up to maxReplicaCount when a burst builds backlog, then scales back to the floor.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: triage-worker
+  labels:
+    app.kubernetes.io/name: agentic-log-triage
+    app.kubernetes.io/component: worker
+spec:
+  scaleTargetRef:
+    name: triage-worker
+  minReplicaCount: 4      # warm floor -- cold starts are unacceptable
+  maxReplicaCount: 20     # headroom for the 3x peak burst
+  cooldownPeriod: 120
+  pollingInterval: 5
+  triggers:
+    - type: redis-streams
+      metadata:
+        address: triage-redis:6379
+        stream: "triage:tasks"
+        consumerGroup: "triage-workers"
+        pendingEntriesCount: "30"   # scale up when backlog per replica exceeds this
+        databaseIndex: "0"

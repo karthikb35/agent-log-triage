@@ -1,0 +1,17 @@
+{
+  "run": {
+    "test_nodeid": "tests/test_payments_flow.py::test_payments_flow[pay-evicted-0]",
+    "status": "failed",
+    "started_at": "2026-09-09T09:00:08+00:00",
+    "ended_at": "2026-09-09T09:00:09+00:00",
+    "duration_seconds": 1.0,
+    "retry_count": 0,
+    "info": {}
+  },
+  "steps": [
+    {"name": "authorize payment", "attempt": 1, "resumed": false, "status": "failed", "duration_seconds": 0.1, "error": "Pod evicted: OOMKilled on node worker-gen-2"}
+  ],
+  "service_calls": [
+    {"service": "payments", "endpoint": "/api/payments/authorize", "status": "error", "duration_ms": 100.0, "attempt": 1}
+  ]
+}

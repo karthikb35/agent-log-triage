@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-and-triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install -e ".[serve]" pytest pytest-resumable-stepmetrics fakeredis httpx ruff
+
+      - name: Lint (ruff)
+        run: ruff check src tests
+
+      - name: Run test suite (emit structured step-logs)
+        run: pytest -q --steplog-json --steplog-json-dir=reports
+
+      - name: Triage the step-logs (fail if automation < 50%)
+        run: triage run --reports reports --format md --fail-under 0.5
+
+      - name: Upload triage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: triage-report
+          path: reports/

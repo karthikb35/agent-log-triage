@@ -1,0 +1,33 @@
+name: release-pdf
+
+# Render the documentation to a PDF handbook and attach it to the GitHub Release.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write   # required to upload the release asset
+
+jobs:
+  pdf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install system libraries for PDF export
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 libffi-dev shared-mime-info
+      - name: Install docs deps
+        run: pip install "mkdocs-material>=9.5,<9.6" mkdocs-with-pdf
+      - name: Render PDF handbook
+        env:
+          ENABLE_PDF_EXPORT: "1"
+        run: mkdocs build --strict -f mkdocs-pdf.yml
+      - name: Attach PDF to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: site/triage-handbook.pdf

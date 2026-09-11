@@ -1,0 +1,17 @@
+{
+  "run": {
+    "test_nodeid": "tests/test_orders_flow.py::test_orders_flow[ord-weird-0]",
+    "status": "failed",
+    "started_at": "2026-09-09T09:00:10+00:00",
+    "ended_at": "2026-09-09T09:00:11+00:00",
+    "duration_seconds": 1.0,
+    "retry_count": 0,
+    "info": {}
+  },
+  "steps": [
+    {"name": "reserve inventory", "attempt": 1, "resumed": false, "status": "failed", "duration_seconds": 0.3, "error": "unclassified anomaly 0x9f while reserving stock"}
+  ],
+  "service_calls": [
+    {"service": "orders", "endpoint": "/api/orders/reserve", "status": "error", "duration_ms": 300.0, "attempt": 1}
+  ]
+}

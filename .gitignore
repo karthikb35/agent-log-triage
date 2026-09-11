@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.env
+
+# pytest-resumable-stepmetrics output
+.steplog/
+reports/
+
+# triage output
+out/
+*.triage.json
+
+# mkdocs build
+site/
+site_check/
+
+# tool caches
+.pytest_cache/
+.ruff_cache/

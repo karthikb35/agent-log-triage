@@ -1,0 +1,55 @@
+# One-shot triage Job.
+#
+# A Job runs a Pod to *completion* -- exactly the batch shape triage needs.
+# This demo Job triages the sample logs baked into the image; in production the
+# reports come from a mounted PVC / object store written by your test pipeline.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: log-triage
+  labels:
+    app.kubernetes.io/name: agentic-log-triage
+spec:
+  backoffLimit: 4                 # retry the Pod up to 4x before failing the Job
+  activeDeadlineSeconds: 600      # hard wall-clock cap
+  ttlSecondsAfterFinished: 3600   # self-clean 1h after completion
+  # Distinguish terminal input errors from retryable infra disruptions.
+  podFailurePolicy:
+    rules:
+      - action: FailJob           # exit 1 = triage below threshold: don't waste retries
+        onExitCodes:
+          operator: In
+          values: [1]
+      - action: Ignore            # node preemption shouldn't count against backoffLimit
+        onPodConditions:
+          - type: DisruptionTarget
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agentic-log-triage
+    spec:
+      restartPolicy: Never        # required for Jobs (Never or OnFailure)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: triage
+          image: registry.internal/tickethub/agentic-log-triage:0.1.0
+          args:
+            - run
+            - --reports
+            - /app/examples/sample_steplogs
+            - --format
+            - md
+            - --fail-under
+            - "0.5"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "500m", memory: "256Mi" }

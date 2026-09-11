@@ -1,0 +1,19 @@
+# CI-only overlay that adds PDF export on top of mkdocs.yml.
+#
+# The `mkdocs-with-pdf` plugin pulls in WeasyPrint, which needs native GTK/Pango
+# libraries. To avoid forcing every contributor to install those just to preview
+# docs, the base mkdocs.yml stays clean and this overlay is used only in CI (where
+# the libraries are installed):
+#
+#     ENABLE_PDF_EXPORT=1 mkdocs build -f mkdocs-pdf.yml
+#
+# It produces the same site plus site/triage-handbook.pdf.
+INHERIT: mkdocs.yml
+
+plugins:
+  - search
+  - with-pdf:
+      output_path: triage-handbook.pdf
+      cover_title: Agentic Log Triage
+      cover_subtitle: Deterministic multi-agent triage — architecture & runbook
+      enabled_if_env: ENABLE_PDF_EXPORT

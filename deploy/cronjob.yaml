@@ -1,0 +1,53 @@
+# Scheduled triage sweep.
+#
+# A CronJob is a Job on a timer: every 15 minutes, triage the latest window of
+# step-logs. `concurrencyPolicy: Forbid` prevents a new sweep starting while the
+# previous one is still running.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: log-triage-sweep
+  labels:
+    app.kubernetes.io/name: agentic-log-triage
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 120
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 4
+      activeDeadlineSeconds: 600
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: agentic-log-triage
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: triage
+              image: registry.internal/tickethub/agentic-log-triage:0.1.0
+              args: ["run", "--reports", "/data/reports", "--format", "md", "--fail-under", "0.5"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests: { cpu: "100m", memory: "128Mi" }
+                limits:   { cpu: "500m", memory: "256Mi" }
+              volumeMounts:
+                - name: reports
+                  mountPath: /data/reports
+                  readOnly: true
+          volumes:
+            # Reports written by your test pipeline. Swap for a PVC / CSI volume.
+            - name: reports
+              emptyDir: {}

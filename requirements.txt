@@ -1,0 +1,2 @@
+# Runtime dependencies for the triage engine.
+langgraph>=0.2,<0.4
